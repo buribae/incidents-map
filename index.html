@@ -73,8 +73,9 @@
             },
             dataType: 'jsonp',
             success:function(json){
-                const p = new Parcel(json.features[0].attributes, {rings:json.features[0].geometry.rings})
-                loadMap(local_json.address.longitude, local_json.address.latitude, p);
+                const incident = new Incident(local_json.description);
+                const p = new Parcel(json.features[0].attributes, {rings:json.features[0].geometry.rings});
+                loadMap(local_json.address.longitude, local_json.address.latitude, p, incident);
             },
             error:function(){
                 alert("Unable to query the database. Try again.");
@@ -83,7 +84,7 @@
     });
     }
 
-    function loadMap(lon, lat, parcel) {
+    function loadMap(lon, lat, parcel, incident) {
         require([
         "esri/Map",
         "esri/views/MapView",
@@ -107,11 +108,37 @@
                 container: "viewDiv",  
                 map: map,
                 center: [lon,lat],
-                zoom: 15
+                zoom: 17
             });
 
-            // Create attributes
-            var attributes = parcel.attributes;
+            // Create a point
+            var point = new Point({
+                longitude: lon,
+                latitude: lat
+            });
+
+            // Create a symbol for drawing the point
+            var markerSymbol = new SimpleMarkerSymbol({
+                color: [255, 0, 0],
+                outline: { 
+                color: [255, 255, 255],
+                width: 1
+                }
+            });
+            
+            // Create popup template
+            var incidentPopupTemplate = {
+                title: "Incident #: {incident_number}",
+                content: "{comments}"
+            };
+
+            // Create a graphic and add the geometry and symbol to it
+            var pointGraphic = new Graphic({
+                geometry: point,
+                symbol: markerSymbol,
+                attributes: incident.description,
+                popupTemplate: incidentPopupTemplate
+            });
             
             // Create popup template
             var popupTemplate = {
@@ -140,6 +167,7 @@
 
             // Add the graphic to the view
             view.graphics.add(polygonGraphic);
+            view.graphics.add(pointGraphic);
         });
     }
 </script>

@@ -21,7 +21,38 @@
 <script>
     const local = "http://127.0.0.1:8080/"
     const api = "http://gis.richmondgov.com/ArcGIS/rest/services/StatePlane4502/Ener/MapServer/0/query/"
-    
+
+    class Parcel {
+        constructor(attributes, rings) {
+            this.attributes = attributes;
+            this.rings = rings; // {rings:[ [-77,37], [-77,36] ... ]}
+        }
+    }
+
+    class Incident {
+        constructor(description) {
+            this.description = description;
+            // "comments": "** LOI search completed at 05/15/17 13:19:12 SPECIAL ADDRESS COMMENT: ***RFD: TARGET HAZARD*** ** Case number C201713827 has been assigned to event F01705150050 ** >>>> by: NANCY L. MOREY on terminal: ecc-f1 OLD BOX OF CHEMICALS WANTS IT TO BE CHECKED OUT *****************TAC 3******************* T22/H2/H3 OS - LT FROM T22 HAS CMD", 
+            // "day_of_week": "Monday", 
+            // "event_closed": "2017-05-15T14:46:46-04:00", 
+            // "event_id": "3587288", 
+            // "event_opened": "2017-05-15T13:19:12-04:00", 
+            // "extended_data": {
+            //     "dispatch_duration": 18, 
+            //     "event_duration": 5254,
+            //     "response_time": 762
+            // }, 
+            // "firśt_unit_arrived": "2017-05-15T13:32:12-04:00", 
+            // "first_unit_dispatched": "2017-05-15T13:19:30-04:00", 
+            // "first_unit_enroute": "2017-05-15T13:20:19-04:00", 
+            // "hour_of_day": 13, 
+            // "incident_number": "F01705150050", 
+            // "loi_search_complete": "2017-05-15T13:19:12-04:00", 
+            // "subtype": "SMELL OR ODOR (NO SPILL)", 
+            // "type": "HAZMAT"
+        }
+    }
+
     function loadJSON(filename) {
 
     $.getJSON( local + 'data/' + filename, function( local_json ) {
@@ -37,12 +68,13 @@
                 returnCountOnly: false,
                 returnIdsOnly: false,
                 returnGeometry: true,
+                outFields: '*',
                 f:'pjson',
             },
             dataType: 'jsonp',
             success:function(json){
-                console.log(json);
-                loadMap(local_json.address.longitude, local_json.address.latitude);
+                const p = new Parcel(json.features[0].attributes, {rings:json.features[0].geometry.rings})
+                loadMap(local_json.address.longitude, local_json.address.latitude, p);
             },
             error:function(){
                 alert("Unable to query the database. Try again.");
@@ -51,7 +83,7 @@
     });
     }
 
-    function loadMap(lon, lat) {
+    function loadMap(lon, lat, parcel) {
         require([
         "esri/Map",
         "esri/views/MapView",
@@ -75,34 +107,19 @@
                 container: "viewDiv",  
                 map: map,
                 center: [lon,lat],
-                zoom: 12
+                zoom: 15
             });
 
             // Create attributes
-            var attributes = {
-                Name: "I am a point",  // The name of the pipeline
-                Park: "Griffith Park",  // The owner of the pipeline
-                City: "Los Angeles"  // The length of the pipeline
-            };
+            var attributes = parcel.attributes;
             
             // Create popup template
             var popupTemplate = {
-                title: "{Name}",
-                content: "I live in <b>{Park}</b> in the city of <b>{City}</b>."
+                title: "{OwnerName}",
+                content: "Address: {MailAddress}, {MailCity}, {MailState}, {MailZip} <br> Land Value: {LandValue} <br>  Land SqFt: {LandSqFt}ft"
             };
 
-            // Create a polygon geometry
-            var polygon = new Polygon({
-                rings: [
-                [-118.27653, 34.15121],
-                [-118.2446, 34.15462],
-                [-118.22915, 34.14439],
-                [-118.23327, 34.12279],
-                [-118.25318, 34.10972],
-                [-118.26486, 34.11625],
-                [-118.27653, 34.15121]
-                ]
-            });
+            var polygon = new Polygon(parcel.rings);
 
             // Create a symbol for rendering the graphic
             var fillSymbol = new SimpleFillSymbol({
@@ -117,7 +134,7 @@
             var polygonGraphic = new Graphic({
                 geometry: polygon,
                 symbol: fillSymbol,
-                attributes: attributes,
+                attributes: parcel.attributes,
                 popupTemplate: popupTemplate
             });
 

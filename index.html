@@ -147,26 +147,6 @@
                 latitude: incident.latitude
             });
 
-            // // Weather Info | optional
-            // if (weather != null) {
-            //     var textSymbol = {
-            //         type: "text",  // autocasts as new TextSymbol()
-            //         color: "black",
-            //         haloColor: "black",
-            //         haloSize: "1px",
-            //         text: weather.data.summary,
-            //         xoffset: 3,
-            //         yoffset: 3,
-            //         font: {  // autocasts as new Font()
-            //             size: 12,
-            //             family: "Josefin Slab",
-            //             weight: "bold"
-            //         }
-            //     };
-            //     var labelGraphic = new Graphic(point, textSymbol);
-            //     view.graphics.add(labelGraphic);
-            // }
-
             // Create a symbol for drawing the point
             var markerSymbol = new SimpleMarkerSymbol({
                 color: [255, 0, 0],

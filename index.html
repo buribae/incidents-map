@@ -21,6 +21,7 @@
 <script>
     const local = "http://127.0.0.1:8080/"
     const api = "http://gis.richmondgov.com/ArcGIS/rest/services/StatePlane4502/Ener/MapServer/0/query/"
+    const weatherAPI = "https://api.darksky.net/forecast/3c201480c19ca4ed700a229ec7fff1c0/"
 
     class Parcel {
         constructor(attributes, rings) {
@@ -30,8 +31,10 @@
     }
 
     class Incident {
-        constructor(description) {
-            this.description = description;
+        constructor(json) {
+            this.latitude = json.address.latitude;
+            this.longitude = json.address.longitude;
+            this.description = json.description;
             // "comments": "** LOI search completed at 05/15/17 13:19:12 SPECIAL ADDRESS COMMENT: ***RFD: TARGET HAZARD*** ** Case number C201713827 has been assigned to event F01705150050 ** >>>> by: NANCY L. MOREY on terminal: ecc-f1 OLD BOX OF CHEMICALS WANTS IT TO BE CHECKED OUT *****************TAC 3******************* T22/H2/H3 OS - LT FROM T22 HAS CMD", 
             // "day_of_week": "Monday", 
             // "event_closed": "2017-05-15T14:46:46-04:00", 
@@ -50,6 +53,12 @@
             // "loi_search_complete": "2017-05-15T13:19:12-04:00", 
             // "subtype": "SMELL OR ODOR (NO SPILL)", 
             // "type": "HAZMAT"
+        }
+    }
+
+    class Weather {
+        constructor(json) {
+            this.data = json.daily.data[0]
         }
     }
 
@@ -73,18 +82,37 @@
             },
             dataType: 'jsonp',
             success:function(json){
-                const incident = new Incident(local_json.description);
-                const p = new Parcel(json.features[0].attributes, {rings:json.features[0].geometry.rings});
-                loadMap(local_json.address.longitude, local_json.address.latitude, p, incident);
+                const incident = new Incident(local_json);
+                const parcel = new Parcel(json.features[0].attributes, {rings:json.features[0].geometry.rings});
+                loadWeather(parcel, incident);
             },
             error:function(){
-                alert("Unable to query the database. Try again.");
+                alert("Unable to query the parcel database.");
             }      
         });
     });
     }
 
-    function loadMap(lon, lat, parcel, incident) {
+    function loadWeather(parcel, incident) {
+        //https://api.darksky.net/forecast/3c201480c19ca4ed700a229ec7fff1c0/42.3601,-71.0589,255657600?exclude=currently,flags
+        $.ajax({
+            url: weatherAPI + incident.latitude + "," + incident.longitude + "," + incident.description.event_opened,
+            type: 'get',
+            data: { 
+                exclude: "currently,hourly,flags"
+            },
+            dataType: 'jsonp',
+            success:function(json){
+                weather = new Weather(json);
+                loadMap(parcel, incident, weather);
+            },
+            error:function(){
+                alert("Unable to query the weather database.");
+            }
+        });
+    }
+
+    function loadMap(parcel, incident, weather) {
         require([
         "esri/Map",
         "esri/views/MapView",
@@ -94,12 +122,14 @@
         "esri/geometry/Polyline",
         "esri/symbols/SimpleLineSymbol",
         "esri/geometry/Polygon",
-        "esri/symbols/SimpleFillSymbol"
+        "esri/symbols/SimpleFillSymbol",
+        "esri/symbols/TextSymbol",
         ], function(Map, MapView,
             Graphic, Point, SimpleMarkerSymbol,
             Polyline, SimpleLineSymbol,
-            Polygon, SimpleFillSymbol
+            Polygon, SimpleFillSymbol, TextSymbol
         ) {
+
             var map = new Map({
                 basemap: "topo-vector"
             });
@@ -107,15 +137,35 @@
             var view = new MapView({
                 container: "viewDiv",  
                 map: map,
-                center: [lon,lat],
+                center: [incident.longitude, incident.latitude],
                 zoom: 17
             });
 
             // Create a point
             var point = new Point({
-                longitude: lon,
-                latitude: lat
+                longitude: incident.longitude,
+                latitude: incident.latitude
             });
+
+            // // Weather Info | optional
+            // if (weather != null) {
+            //     var textSymbol = {
+            //         type: "text",  // autocasts as new TextSymbol()
+            //         color: "black",
+            //         haloColor: "black",
+            //         haloSize: "1px",
+            //         text: weather.data.summary,
+            //         xoffset: 3,
+            //         yoffset: 3,
+            //         font: {  // autocasts as new Font()
+            //             size: 12,
+            //             family: "Josefin Slab",
+            //             weight: "bold"
+            //         }
+            //     };
+            //     var labelGraphic = new Graphic(point, textSymbol);
+            //     view.graphics.add(labelGraphic);
+            // }
 
             // Create a symbol for drawing the point
             var markerSymbol = new SimpleMarkerSymbol({
@@ -129,7 +179,8 @@
             // Create popup template
             var incidentPopupTemplate = {
                 title: "Incident #: {incident_number}",
-                content: "{comments}"
+                content: "Event Created Time: {event_opened} <br> Weather: " + weather.data.summary + "<br> TempHigh: "
+                + weather.data.temperatureHigh + "<br> TempHigh: " + weather.data.temperatureLow + "<br><br> {comments}"
             };
 
             // Create a graphic and add the geometry and symbol to it

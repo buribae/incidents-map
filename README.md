@@ -10,15 +10,18 @@
 
 
 ## How to Run
+Accessing local files from chrome browser was blocked. So I had to use live-server to host the incident data file.
+[Reference](https://stackoverflow.com/questions/18586921/how-to-launch-html-using-chrome-at-allow-file-access-from-files-mode)
+
 ```
 $ npm install -g live-server
 $ live-server
 ```
-
-1. Click "choose file" to import your incident file.
-2. Then it will automatically bring up the map.
-3. Click on point to see incident detail + weather info.
-4. Click on polygon area to see address info.
+1. Make sure you put your incident file inside ../data/
+2. Click "choose file" to import your incident file.
+3. Then it will automatically bring up the map.
+4. Click on point to see incident detail + weather info.
+5. Click on polygon area to see address info.
 
 ## Completed
 YES.

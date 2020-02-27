@@ -23,12 +23,6 @@ $ live-server
 4. Click on point to see incident detail + weather info.
 5. Click on polygon area to see address info.
 
-## Completed
-YES.
-
-## How much time did you spend?
-4 hours
-
 ## Screenshots
 First Page
 
@@ -41,7 +35,3 @@ Map Loaded
 Address Click
 
 ![Address Click](../master/screenshots/polygon_onclick.png)
-
-Incident click
-
-![Incident Click](../master/screenshots/point_onclick.png)
